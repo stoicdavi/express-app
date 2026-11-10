@@ -1,7 +1,7 @@
-FROM node:16
+FROM node:20
 
 COPY . .
 
 RUN npm install
 
-CMD node index.js
+CMD ["node", "index.js"]
