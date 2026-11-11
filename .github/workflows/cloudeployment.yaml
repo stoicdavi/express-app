@@ -1,21 +1,22 @@
 name: Test AWS authentication
 
 on:
-  workflow_dispatch:
+    push:
+      branches:
+        - main
 
 permissions:
-  contents: read
-  id-token: write
+    contents: read
+    id-token: write
 
 jobs:
-  authenticate:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Authenticate with AWS
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
-          aws-region: us-east-1
-
-      - name: Verify AWS identity
-        run: aws sts get-caller-identity
+    authenticate:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Authenticate with AWS
+              uses: aws-actions/configure-aws-credentials@v4
+              with:
+                role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+                aws-region: us-east-1
+            - name: Verify AWS identity
+              run: aws sts get-caller-identity

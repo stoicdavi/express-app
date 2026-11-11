@@ -1,0 +1,26 @@
+{
+    "Arn": "arn:aws:iam::632144225367:role/github-express-deploy",
+    "Trust": {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Effect": "Allow",
+                "Principal": {
+                    "Federated": "arn:aws:iam::632144225367:oidc-provider/token.actions.githubusercontent.com"
+                },
+                "Action": "sts:AssumeRoleWithWebIdentity",
+                "Condition": {
+                    "StringEquals": {
+                        "token.actions.githubusercontent.com:aud": "sts.amazonaws.com"
+                    },
+                    "StringLike": {
+                        "token.actions.githubusercontent.com:sub": [
+                            "repo:stoicdavi/express-app:ref:refs/heads/main",
+                            "repo:stoicdavi/express-app:ref:refs/heads/main"
+                        ]
+                    }
+                }
+            }
+        ]
+    }
+}
