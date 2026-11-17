@@ -64,6 +64,51 @@ add these repository secrets:
 Push to `main` and wait for a successful run in the repository's **Actions** tab
 before pulling the image.
 
+## AWS Authentication
+
+The AWS authentication workflow runs on pushes to `main`. Set the Actions
+repository **variable** `AWS_ROLE_ARN` to
+`arn:aws:iam::632144225367:role/github-express-deploy`. It uses GitHub OIDC,
+not stored AWS access keys, then checks `aws sts get-caller-identity`.
+
+The `authenticate` job in run `44038991543` obtained an OIDC token, but AWS
+rejected role assumption with `Not authorized to perform
+sts:AssumeRoleWithWebIdentity`. The workflow already grants `id-token: write`;
+changing action versions or retrying does not repair AWS trust authorization.
+The checked-in IAM output is only a snapshot, not an applied configuration.
+
+An administrator for AWS account `632144225367` must inspect the live role and
+OIDC provider using an independently authenticated AWS CLI session:
+
+```bash
+aws iam get-role --role-name github-express-deploy \
+  --query 'Role.AssumeRolePolicyDocument'
+aws iam get-open-id-connect-provider \
+  --open-id-connect-provider-arn arn:aws:iam::632144225367:oidc-provider/token.actions.githubusercontent.com
+```
+
+The provider URL must be `https://token.actions.githubusercontent.com` and its
+client IDs must include `sts.amazonaws.com`. The role must trust that provider,
+the same audience, and the subject
+`repo:stoicdavi/express-app:ref:refs/heads/main`. If a custom GitHub OIDC subject
+template is configured, reconcile it with this branch-only trust before retrying.
+
+An apply-ready policy is in `aws/github-express-deploy-trust-policy.json`.
+From the repository root, after reviewing and backing up the live policy, apply
+it with the administrator session (this replaces the role's existing trust):
+
+```bash
+aws iam update-assume-role-policy --role-name github-express-deploy \
+  --policy-document "file://$PWD/aws/github-express-deploy-trust-policy.json"
+```
+
+This policy permits only this repository's `main` branch, not pull requests or
+other repositories. Do not broaden the subject to `*` to bypass the failure.
+Committing the file alone does not update IAM. After applying it, rerun the
+failed job and confirm that **Verify AWS identity** reports the intended account
+and assumed role. Live AWS authorization cannot be verified locally without
+the corresponding AWS access.
+
 ## Enable Automatic Updates
 
 The [Compose file](docker-compose.yaml) starts only Watchtower, not the Express
